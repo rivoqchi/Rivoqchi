@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String
+  firstName String?    @map("first_name")
+  lastName  String?    @map("last_name")
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  roles          UserRole[]
+  refreshTokens  RefreshToken[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId String @map("user_id")
+  roleId String @map("role_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+enum Locale {
+  uz
+  ru
+  en
+  cyrl
+}
+
+model PersonalInfo {
+  id        String   @id @default(uuid())
+  locale    Locale   @unique
+  name      String
+  title     String
+  email     String
+  phone     String
+  location  String
+  avatar    String?
+  gallery   Json     @default("[]")
+  bio       String
+  aboutDetails Json  @default("[]") @map("about_details")
+  highlights   Json  @default("[]")
+  interests    Json  @default("[]")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  socialLinks SocialLink[]
+
+  @@map("personal_info")
+}
+
+model SocialLink {
+  id             String @id @default(uuid())
+  personalInfoId String @map("personal_info_id")
+  platform       String
+  url            String
+  icon           String
+  sortOrder      Int    @default(0) @map("sort_order")
+
+  personalInfo PersonalInfo @relation(fields: [personalInfoId], references: [id], onDelete: Cascade)
+
+  @@index([personalInfoId])
+  @@map("social_links")
+}
+
+model Experience {
+  id           String   @id @default(uuid())
+  locale       Locale
+  company      String
+  role         String
+  period       String
+  description  String
+  technologies Json
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([locale])
+  @@map("experiences")
+}
+
+model Skill {
+  id        String   @id @default(uuid())
+  locale    Locale
+  name      String
+  category  String
+  level     Int
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([locale])
+  @@map("skills")
+}
+
+model Project {
+  id           String   @id @default(uuid())
+  locale       Locale
+  title        String
+  description  String
+  image        String?
+  images       Json?
+  technologies Json
+  liveUrl      String?  @map("live_url")
+  repoUrl      String?  @map("repo_url")
+  likes        Int      @default(0)
+  views        Int      @default(0)
+  isPinned     Boolean  @default(false) @map("is_pinned")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  projectLikes  ProjectLike[]
+  projectViews  ProjectView[]
+
+  @@index([locale])
+  @@map("projects")
+}
+
+model ProjectLike {
+  projectId  String   @map("project_id")
+  visitorKey String   @map("visitor_key")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, visitorKey])
+  @@map("project_likes")
+}
+
+model ProjectView {
+  projectId    String   @map("project_id")
+  visitorKey   String   @map("visitor_key")
+  lastViewedAt DateTime @map("last_viewed_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, visitorKey])
+  @@map("project_views")
+}
+
+model UiTranslation {
+  id        String   @id @default(uuid())
+  locale    Locale
+  key       String
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([locale, key])
+  @@index([locale])
+  @@map("ui_translations")
+}
+
+model SiteSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
+model ContactMessage {
+  id            String   @id @default(uuid())
+  googleAccount String   @map("google_account")
+  purpose       String
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("contact_messages")
+}

@@ -1,0 +1,13 @@
+{
+  "name": "cv",
+  "private": true,
+  "scripts": {
+    "predev": "node scripts/free-ports.mjs",
+    "dev": "node scripts/dev-banner.mjs && concurrently -k -n backend,frontend -c blue,green \"npm run dev --prefix b\" \"npm run dev --prefix f\"",
+    "dev:backend": "npm run dev --prefix b",
+    "dev:frontend": "npm run dev --prefix f"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
